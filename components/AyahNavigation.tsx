@@ -8,7 +8,13 @@ import {
   CogIcon,
   XMarkIcon,
 } from "@heroicons/react/24/solid";
-
+type Reciter = {
+  id: number;
+  name: string;
+  identifier: string;
+  englishName: string;
+  language: string;
+};
 type AyahNavigationProps = {
   surah: number;
   ayah: number;
@@ -18,7 +24,7 @@ type AyahNavigationProps = {
   setFont: (reciter: string) => void;
   currentReciter: string;
   currentFont: string;
-  reciters: any[];
+  reciters: Reciter[];
 };
 
 const AyahNavigation = ({

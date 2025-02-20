@@ -1,25 +1,14 @@
-"use client";
+// Remove "use client" so this remains a server component
 
-import { useEffect, useState } from "react";
 import AyahDisplay from "@/components/AyahDisplay";
 
 interface AyahPageProps {
+  // Adjust the type so that params is a Promise of the expected object.
   params: Promise<{ surah: string; ayah: string }>;
 }
 
-export default function AyahPage({ params }: AyahPageProps) {
-  const [ayahData, setAyahData] = useState<{
-    surah: string;
-    ayah: string;
-  } | null>(null);
-
-  useEffect(() => {
-    params.then((data) => setAyahData(data));
-  }, [params]);
-
-  if (!ayahData) {
-    return <div>Loading...</div>;
-  }
-
-  return <AyahDisplay params={ayahData} />;
+export default async function AyahPage({ params }: AyahPageProps) {
+  // Await the params so you have the plain object for rendering.
+  const resolvedParams = await params;
+  return <AyahDisplay params={resolvedParams} />;
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+
 import AudioPlayer from "./AudioPlayer";
 import AyahNavigation from "./AyahNavigation";
 import { fetchAyahData, fetchReciters } from "./../utils/fetchAyahData";
@@ -13,8 +13,11 @@ type AyahData = {
   numberInSurah: number;
 };
 
-const AyahDisplay = () => {
-  const params = useParams();
+interface AyahDisplayProps {
+  params: { surah: string; ayah: string };
+}
+
+const AyahDisplay = ({ params }: AyahDisplayProps) => {
   const surah = parseInt(params?.surah as string);
   const ayah = parseInt(params?.ayah as string);
 
@@ -35,7 +38,15 @@ const AyahDisplay = () => {
     }
     return "Amiri";
   });
-  const [reciters, setReciters] = useState<any[]>([]);
+  const [reciters, setReciters] = useState<
+    {
+      id: number;
+      name: string;
+      identifier: string;
+      englishName: string;
+      language: string;
+    }[]
+  >([]);
 
   // Load mute state from localStorage
   useEffect(() => {
