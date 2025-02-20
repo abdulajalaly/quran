@@ -1,21 +1,32 @@
+@import url("https://fonts.googleapis.com/css2?family=Amiri&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@font-face {
+  font-family: "AridiKoufi";
+  src: url("/fonts/AridiKoufi_MRT.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+.arabic-text {
+  /* font-family: "AridiKoufi", serif; */
+  line-height: 2.5;
+  font-size: 2rem;
+}
+
+@media (max-width: 768px) {
+  .arabic-text {
+    font-size: 1.5rem;
+    line-height: 2;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+.amiri {
+  font-family: "Amiri", serif;
+}
+
+.aridi {
+  font-family: "AridiKoufi", serif;
 }
