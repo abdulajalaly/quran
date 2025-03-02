@@ -4,7 +4,15 @@ import { useEffect, useState } from "react";
 
 import AudioPlayer from "./AudioPlayer";
 import AyahNavigation from "./AyahNavigation";
-import { fetchAyahData, fetchReciters } from "./../utils/fetchAyahData";
+import {
+  fetchAyahData,
+  fetchReciters,
+  saveLastReadAyah,
+  getTranslations,
+  getAyahTranslation,
+} from "./../utils/fetchAyahData";
+import { ChevronDownIcon } from "@heroicons/react/24/solid";
+import { useSettings } from "./SettingsContext"; // Import the context
 
 type AyahData = {
   text: string;
@@ -13,31 +21,42 @@ type AyahData = {
   numberInSurah: number;
 };
 
+type Translation = {
+  identifier: string;
+  language: string;
+  name: string;
+  englishName: string;
+  format: string;
+  type: string;
+  direction: string;
+};
+
 interface AyahDisplayProps {
   params: { surah: string; ayah: string };
 }
 
 const AyahDisplay = ({ params }: AyahDisplayProps) => {
+  const {
+    selectedSurah,
+    selectedAyah,
+    setSelectedSurah,
+    setSelectedAyah,
+    selectedTranslation,
+    setSelectedTranslation,
+  } = useSettings(); // Use the context
+
+  // Replace local state for reciter and font with context values
+  const { reciter, setReciter, font, setFont, isMuted, setMuted } =
+    useSettings();
+
   const surah = parseInt(params?.surah as string);
   const ayah = parseInt(params?.ayah as string);
 
   const [ayahData, setAyahData] = useState<AyahData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [isMuted, setIsMuted] = useState(false);
-  // Initialize reciter state from localStorage (if exists) or default to "ar.alafasy"
-  const [reciter, setReciter] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("reciter") || "ar.alafasy";
-    }
-    return "ar.alafasy";
-  });
-  const [font, setFont] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("font") || "Amiri";
-    }
-    return "Amiri";
-  });
+  const [showSettings, setShowSettings] = useState(false);
+  const [showVerseSelection, setShowVerseSelection] = useState(false);
   const [reciters, setReciters] = useState<
     {
       id: number;
@@ -47,15 +66,20 @@ const AyahDisplay = ({ params }: AyahDisplayProps) => {
       language: string;
     }[]
   >([]);
+  const [translations, setTranslations] = useState<Translation[]>([]);
+  const [translationText, setTranslationText] = useState<string>("");
 
   // Load mute state from localStorage
   useEffect(() => {
     const savedMuteState = localStorage.getItem("isMuted");
     if (savedMuteState !== null) {
-      setIsMuted(savedMuteState === "true");
+      setMuted(savedMuteState === "true");
     }
-  }, []);
-
+  }, [setMuted]);
+  useEffect(() => {
+    setSelectedSurah(surah);
+    setSelectedAyah(ayah);
+  }, [surah, ayah, setSelectedSurah, setSelectedAyah]);
   // Fetch reciters on mount
   useEffect(() => {
     const fetchReciterList = async () => {
@@ -81,11 +105,49 @@ const AyahDisplay = ({ params }: AyahDisplayProps) => {
       }
       setAyahData(result.data);
       setLoading(false);
+
+      // Save the last read Ayah and Surah
+      saveLastReadAyah(surah, ayah);
     };
     if (reciter) {
       fetchAyah();
     }
   }, [surah, ayah, reciter]);
+
+  // Fetch translations on mount
+  useEffect(() => {
+    const fetchTranslations = async () => {
+      const result = await getTranslations();
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      setTranslations(result);
+    };
+    fetchTranslations();
+  }, []);
+
+  // Fetch translation when selectedTranslation changes
+  useEffect(() => {
+    const fetchTranslation = async () => {
+      if (selectedTranslation) {
+        const translation = await getAyahTranslation(
+          surah,
+          ayah,
+          selectedTranslation
+        );
+        if (translation.error) {
+          setError(translation.error);
+          return;
+        }
+        setTranslationText(translation);
+      } else {
+        // Clear the translation text if "None" is selected
+        setTranslationText("");
+      }
+    };
+    fetchTranslation();
+  }, [selectedTranslation, surah, ayah]);
 
   return (
     <div className="relative w-screen h-screen flex flex-col items-center justify-center">
@@ -107,9 +169,18 @@ const AyahDisplay = ({ params }: AyahDisplayProps) => {
             >
               {ayahData.text}
             </p>
-            <div className="mt-6 text-sm text-white/80">
-              {ayahData.surah.englishName} (Verse {ayahData.numberInSurah} of{" "}
-              {ayahData.surah.numberOfAyahs})
+            {translationText && (
+              <p className="text-lg mt-4 text-white/80">{translationText}</p>
+            )}
+            <div
+              onClick={() => {
+                setShowVerseSelection(true);
+              }}
+              className="mt-12 text-sm text-white/80 flex cursor-pointer"
+            >
+              {ayahData.surah.englishName} ({ayahData.numberInSurah} of{" "}
+              {ayahData.surah.numberOfAyahs}){" "}
+              <ChevronDownIcon className="ml-1 h-6 w-6" />
             </div>
           </>
         ) : null}
@@ -122,24 +193,22 @@ const AyahDisplay = ({ params }: AyahDisplayProps) => {
         {/* Navigation Buttons (with reciter and mute controls) */}
         {ayahData && (
           <AyahNavigation
-            surah={surah}
-            ayah={ayah}
+            surah={selectedSurah}
+            ayah={selectedAyah}
             totalAyahs={ayahData.surah.numberOfAyahs}
-            setMuted={(muted) => {
-              setIsMuted(muted);
-              localStorage.setItem("isMuted", muted.toString());
-            }}
-            setReciter={(r) => {
-              setReciter(r);
-              localStorage.setItem("reciter", r);
-            }}
-            setFont={(r) => {
-              setFont(r);
-              localStorage.setItem("font", r);
-            }}
+            setMuted={setMuted}
+            setReciter={setReciter}
+            setFont={setFont}
             currentReciter={reciter}
             currentFont={font}
             reciters={reciters}
+            showSettings={showSettings}
+            setShowSettings={setShowSettings}
+            showVerseSelection={showVerseSelection}
+            setShowVerseSelection={setShowVerseSelection}
+            selectedTranslation={selectedTranslation}
+            setSelectedTranslation={setSelectedTranslation}
+            translations={translations}
           />
         )}
       </div>

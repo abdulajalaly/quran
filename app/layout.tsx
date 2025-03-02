@@ -4,6 +4,7 @@ import "./globals.css";
 
 import VideoPlayer from "./../components/VideoPlayer";
 import Footer from "@/components/Footer";
+import { SettingsProvider } from "@/components/SettingsContext";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -33,7 +34,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <VideoPlayer />
-        {children}
+        <SettingsProvider>{children}</SettingsProvider>
         <Footer />
       </body>
     </html>
