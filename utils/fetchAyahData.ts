@@ -1,14 +1,11 @@
 // Fetch list of reciters
 export const fetchReciters = async () => {
   try {
-    const response = await fetch("https://api.alquran.cloud/v1/edition");
+    const response = await fetch("/edition.customization.json");
     if (!response.ok) {
       return { error: "Failed to fetch reciters" };
     }
     const data = await response.json();
-    if (data.code !== 200) {
-      return { error: "Error fetching reciters" };
-    }
 
     // Filter out reciters with format "audio" and type "versebyverse"
     const filteredReciters = data.data.filter(
@@ -29,11 +26,11 @@ export const fetchReciters = async () => {
 export const fetchAyahData = async (
   surah: number,
   ayah: number,
-  reciter: string
+  edition: string
 ) => {
   try {
     const response = await fetch(
-      `https://api.alquran.cloud/v1/ayah/${surah}:${ayah}/${reciter}`
+      `https://api.alquran.cloud/v1/ayah/${surah}:${ayah}/${edition}`
     );
     if (!response.ok) {
       return { error: "Failed to fetch ayah" };
@@ -51,20 +48,24 @@ export const fetchAyahData = async (
   }
 };
 
-// Fetch Surah name based on Surah number
 export const fetchSurahName = async (surahNumber: number) => {
   try {
-    const response = await fetch(
-      `https://api.alquran.cloud/v1/surah/${surahNumber}`
-    );
+    const response = await fetch("/meta.customization.json");
     if (!response.ok) {
       return { error: "Failed to fetch surah name" };
     }
     const data = await response.json();
-    if (data.code !== 200) {
-      return { error: "Error fetching surah name" };
+
+    // Find the surah with matching number from the references array
+    const surah = data.data.surahs.references.find(
+      (s: { number: number }) => s.number === surahNumber
+    );
+
+    if (!surah) {
+      return { error: "Surah not found" };
     }
-    return { name: data.data.englishName }; // Return the name of the Surah
+
+    return { name: surah.englishName };
   } catch (error) {
     if (error instanceof Error) {
       return { error: error.message || "Failed to load surah name" };
@@ -80,41 +81,18 @@ export const saveLastReadAyah = (surah: number, ayah: number) => {
 };
 
 export async function getTranslations() {
-  const res = await fetch("https://api.alquran.cloud/v1/edition");
-  const data = await res.json();
+  try {
+    const res = await fetch("/edition.customization.json");
+    const data = await res.json();
 
-  // Check if the response is valid
-  if (data.code !== 200) {
+    // Check if the response is valid
+    if (!data.data) {
+      throw new Error("Failed to fetch translations");
+    }
+
+    // Filter for translations
+    return data.data.filter((edition: any) => edition.type === "translation");
+  } catch (error) {
     throw new Error("Failed to fetch translations");
   }
-
-  // Filter for translations
-  return data.data.filter((edition: any) => edition.type === "translation");
-}
-
-// export async function getTafsirs() {
-//   const res = await fetch("https://api.alquran.cloud/v1/edition");
-//   const data = await res.json();
-
-//   return data.data.filter((edition: any) => edition.type === "tafsir");
-// }
-
-// Fetch Ayah translation based on Surah, Ayah, and selected edition
-export async function getAyahTranslation(
-  surah: number,
-  ayah: number,
-  edition: string
-) {
-  const response = await fetch(
-    `http://api.alquran.cloud/v1/ayah/${surah}:${ayah}/${edition}`
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch data");
-  }
-
-  const data = await response.json();
-
-  // Extract the text from the response
-  return data.data.text;
 }

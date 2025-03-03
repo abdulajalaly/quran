@@ -9,7 +9,6 @@ import {
   fetchReciters,
   saveLastReadAyah,
   getTranslations,
-  getAyahTranslation,
 } from "./../utils/fetchAyahData";
 import { ChevronDownIcon } from "@heroicons/react/24/solid";
 import { useSettings } from "./SettingsContext"; // Import the context
@@ -131,16 +130,18 @@ const AyahDisplay = ({ params }: AyahDisplayProps) => {
   useEffect(() => {
     const fetchTranslation = async () => {
       if (selectedTranslation) {
-        const translation = await getAyahTranslation(
+        const translation = await fetchAyahData(
           surah,
           ayah,
           selectedTranslation
         );
         if (translation.error) {
           setError(translation.error);
+          setLoading(false);
           return;
         }
-        setTranslationText(translation);
+
+        setTranslationText(translation?.data?.text);
       } else {
         // Clear the translation text if "None" is selected
         setTranslationText("");
@@ -155,22 +156,43 @@ const AyahDisplay = ({ params }: AyahDisplayProps) => {
       <div className="absolute inset-0 bg-black/70" />
 
       {/* Content */}
-      <div className="relative z-10 w-full max-w-4xl px-4 flex flex-col items-center text-center text-white">
+      <div className="relative z-10 w-full max-w-4xl px-6 flex flex-col items-center text-center text-white">
         {error ? (
           <p className="text-red-400 mt-4">{error}</p>
         ) : loading ? (
           <p className="text-xl animate-pulse mt-4">Loading...</p>
         ) : ayahData ? (
           <>
-            <p
-              className={`text-3xl md:text-4xl leading-loose arabic-text mt-4 ${
-                font === "Amiri" ? "amiri" : "aridi"
-              }`}
-            >
-              {ayahData.text}
-            </p>
+            {surah !== 1 && ayahData.numberInSurah === 1 ? (
+              // Split Bismillah and remaining text for first ayah of each surah (except Surah Al-Fatiha)
+              <>
+                <p
+                  className={`text-2xl md:text-3xl leading-loose arabic-text mt-4 mb-6 ${
+                    font === "Amiri" ? "amiri" : "aridi"
+                  }`}
+                >
+                  {ayahData.text.split(" ").slice(0, 4).join(" ")}
+                </p>
+                <p
+                  className={`text-3xl md:text-4xl leading-loose arabic-text mt-4 ${
+                    font === "Amiri" ? "amiri" : "aridi"
+                  }`}
+                >
+                  {ayahData.text.split(" ").slice(4).join(" ")}
+                </p>
+              </>
+            ) : (
+              // Regular display for all other ayahs
+              <p
+                className={`text-3xl md:text-4xl leading-loose arabic-text mt-4 ${
+                  font === "Amiri" ? "amiri" : "aridi"
+                }`}
+              >
+                {ayahData.text}
+              </p>
+            )}
             {translationText && (
-              <p className="text-lg mt-4 text-white/80">{translationText}</p>
+              <p className="text-lg mt-6 text-white/80">{translationText}</p>
             )}
             <div
               onClick={() => {
